@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Signal Performance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen p-6 md:p-12">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-10 text-center">
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">🚦 Traffic Signal Performance</h1>
+            <p class="text-slate-500">Automated PCD & LOS Diagnostic Tool</p>
+        </header>
+
+        <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
+            <div id="drop-zone" class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center hover:border-blue-400 transition-all cursor-pointer bg-slate-50/50">
+                <input type="file" id="fileInput" class="hidden" accept="image/*">
+                <i class="fa-solid fa-microchip text-4xl text-blue-500 mb-4"></i>
+                <p class="text-slate-700 font-bold text-lg">Upload Analysis Graph</p>
+                <p class="text-slate-400 text-sm mb-4">PCD or Arrival Profile (PNG/JPG)</p>
+                <button onclick="document.getElementById('fileInput').click()" class="bg-blue-600 text-white px-8 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition">Select File</button>
+            </div>
+
+            <div id="results" class="hidden mt-10 space-y-6 animate-pulse">
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-white p-5 rounded-2xl text-center border shadow-sm">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AoG %</span>
+                        <p id="res-aog" class="text-2xl font-black text-slate-800">--</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl text-center border shadow-sm">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Platoon Ratio</span>
+                        <p id="res-pr" class="text-2xl font-black text-slate-800">--</p>
+                    </div>
+                    <div id="los-card" class="bg-slate-800 p-5 rounded-2xl text-center text-white shadow-lg">
+                        <span class="text-[10px] font-bold opacity-70 uppercase tracking-widest">Est. LOS</span>
+                        <p id="res-los" class="text-3xl font-black">--</p>
+                    </div>
+                </div>
+                <div class="p-6 bg-blue-50 border-l-4 border-blue-500 rounded-xl">
+                    <h3 class="text-xs font-bold text-blue-700 uppercase mb-2">Engineering Analysis</h3>
+                    <p id="res-summary" class="text-sm text-slate-700 leading-relaxed font-medium"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        fileInput.onchange = async () => {
+            if (!fileInput.files[0]) return;
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+            resultsDiv.classList.add('animate-pulse');
+            document.getElementById('res-summary').innerText = "Running visual calculations...";
+
+            try {
+                const response = await fetch('/analyze', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                resultsDiv.classList.remove('animate-pulse');
+                document.getElementById('res-aog').innerText = data.aog;
+                document.getElementById('res-pr').innerText = data.pr;
+                document.getElementById('res-los').innerText = data.los;
+                document.getElementById('res-summary').innerText = data.summary;
+                
+                if (data.los === 'A' || data.los === 'B') {
+                    document.getElementById('los-card').className = "bg-green-600 p-5 rounded-2xl text-center text-white shadow-lg";
+                }
+            } catch (err) {
+                document.getElementById('res-summary').innerText = "Analysis failed. Check API key.";
+            }
+        };
+    </script>
+</body>
+</html>
